@@ -1,0 +1,180 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity octava_completa is
+    Port (
+        clk        : in  STD_LOGIC;                    -- reloj 50 MHz
+        pulsadores : in  STD_LOGIC_VECTOR(7 downto 0); -- 8 pulsadores activos bajos
+        nota_out   : out STD_LOGIC                      -- salida para buzzer o LED
+    );
+end octava_completa;
+
+architecture Behavioral of octava_completa is
+
+    -- Constantes para cada nota (half divisor calculados antes)
+    constant HALF_DIV_DO   : integer := 47778; -- Do4 ≈ 261.63 Hz
+    constant HALF_DIV_RE   : integer := 42652; -- Re4 ≈ 293.66 Hz
+    constant HALF_DIV_MI   : integer := 37927; -- Mi4 ≈ 329.63 Hz
+    constant HALF_DIV_FA   : integer := 35804; -- Fa4 ≈ 349.23 Hz
+    constant HALF_DIV_SOL  : integer := 31887; -- Sol4 ≈ 392.00 Hz
+    constant HALF_DIV_LA   : integer := 28409; -- La4 ≈ 440.00 Hz
+    constant HALF_DIV_SI   : integer := 25300; -- Si4 ≈ 493.88 Hz
+    constant HALF_DIV_DO5  : integer := 23883; -- Do5 ≈ 523.25 Hz
+
+    -- Señales internas para contadores y salidas
+    signal counter_do, counter_re, counter_mi, counter_fa, counter_sol, counter_la, counter_si, counter_do5 : integer range 0 to 60000 := 0;
+    signal do_sig, re_sig, mi_sig, fa_sig, sol_sig, la_sig, si_sig, do5_sig : std_logic := '0';
+
+    signal sel : std_logic_vector(2 downto 0);
+    signal any_pressed : std_logic;
+
+begin
+
+    -- Selector pulsadores activos bajos a selector binario y detección si alguno está presionado
+    process(pulsadores)
+        variable index : integer := 0;
+        variable pressed : boolean := false;
+    begin
+        pressed := false;
+        index := 0;
+        for i in 0 to 7 loop
+            if pulsadores(i) = '0' then
+                index := i;
+                pressed := true;
+            end if;
+        end loop;
+
+        sel <= std_logic_vector(to_unsigned(index, 3));
+        if pressed = true then
+            any_pressed <= '1';
+        else
+            any_pressed <= '0';
+        end if;
+    end process;
+
+    -- Generador para Do4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_do = HALF_DIV_DO then
+                counter_do <= 0;
+                do_sig <= not do_sig;
+            else
+                counter_do <= counter_do + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para Re4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_re = HALF_DIV_RE then
+                counter_re <= 0;
+                re_sig <= not re_sig;
+            else
+                counter_re <= counter_re + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para Mi4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_mi = HALF_DIV_MI then
+                counter_mi <= 0;
+                mi_sig <= not mi_sig;
+            else
+                counter_mi <= counter_mi + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para Fa4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_fa = HALF_DIV_FA then
+                counter_fa <= 0;
+                fa_sig <= not fa_sig;
+            else
+                counter_fa <= counter_fa + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para Sol4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_sol = HALF_DIV_SOL then
+                counter_sol <= 0;
+                sol_sig <= not sol_sig;
+            else
+                counter_sol <= counter_sol + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para La4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_la = HALF_DIV_LA then
+                counter_la <= 0;
+                la_sig <= not la_sig;
+            else
+                counter_la <= counter_la + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para Si4
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_si = HALF_DIV_SI then
+                counter_si <= 0;
+                si_sig <= not si_sig;
+            else
+                counter_si <= counter_si + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Generador para Do5
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if counter_do5 = HALF_DIV_DO5 then
+                counter_do5 <= 0;
+                do5_sig <= not do5_sig;
+            else
+                counter_do5 <= counter_do5 + 1;
+            end if;
+        end if;
+    end process;
+
+    -- Multiplexor 8 a 1 para seleccionar la nota activa solo si algún pulsador está presionado
+    process(do_sig, re_sig, mi_sig, fa_sig, sol_sig, la_sig, si_sig, do5_sig, sel, any_pressed)
+    begin
+        if any_pressed = '1' then
+            case sel is
+                when "000" => nota_out <= do_sig;
+                when "001" => nota_out <= re_sig;
+                when "010" => nota_out <= mi_sig;
+                when "011" => nota_out <= fa_sig;
+                when "100" => nota_out <= sol_sig;
+                when "101" => nota_out <= la_sig;
+                when "110" => nota_out <= si_sig;
+                when "111" => nota_out <= do5_sig;
+                when others => nota_out <= '0';
+            end case;
+        else
+            nota_out <= '0';  -- silencio cuando no se presiona ningún pulsador
+        end if;
+    end process;
+
+end Behavioral;
